@@ -1,0 +1,94 @@
+{
+  "skill_card": {
+    "starterkit_id": "dotnet-version-migration-orchestrator",
+    "name": ".NET Version Migration Orchestrator Agent",
+    "description": "A conductor agent that orchestrates a 7-step .NET version migration pipeline (e.g. net6.0 \u2192 net8.0, or .NET Framework \u2192 .NET Core/Modern). It does not analyze, refactor, build, or test code itself; it invokes the Codebase Analysis, Dependency Mapping, API Compatibility, Code Refactoring, Build & Compilation, Test Execution, and Reporting subagents in sequence, each writing JSON artifacts into a per-repo migrated-output/{repoName}/.migration/ folder. It enforces a strict golden rule across every subagent \u2014 the original source project is never read-write, only read-only \u2014 so a failed migration carries zero risk to the source. On a build failure it automatically invokes the Rollback Agent to delete migrated-output/{repoName}/ and halts the pipeline; on success it proceeds through testing and an optional Migration Critique Agent before final report generation. It delivers an auditable, source-safe .NET modernization workflow with isolated per-repo outputs and a final human-readable migration-report.md.",
+    "origin": {
+      "BG": "AI and ST",
+      "ISU": "AI and ST",
+      "Account": "AI AD"
+    },
+    "maintainers": [
+      {
+        "name": "Vaishnavi Singh",
+        "contact": "singh.vaishnavi7@tcs.com"
+      },
+      {
+        "name": "Ram Sabarish J K R",
+        "contact": "ramsabarish.jkr@tcs.com"
+      },
+      {
+        "name": "Lakshya Kumar",
+        "contact": "lakshya.k1@tcs.com"
+      }
+    ],
+    "version": "2.1.0",
+    "status": "draft",
+    "technology": [
+      ".NET Framework",
+      ".NET Core",
+      "C#",
+      "MSBuild",
+      "NuGet",
+      "Roslyn",
+      "xUnit/NUnit/MSTest"
+    ],
+    "specialization": {
+      "primary": "agent_orchestration",
+      "domain_specific": [
+        "Multi-agent Coordination",
+        "Source-Safe Migration (Read-Only Source, Write-Only Output)",
+        "Breaking-Change Detection & Auto-Remediation",
+        "Build & Test Gating",
+        "Repo-Scoped Rollback",
+        "Migration Quality Critique"
+      ]
+    },
+    "tasks": [
+      {
+        "name": "Initialize repo-scoped run and discover solution structure",
+        "description": "Derives {repoName} from the source project root folder, initializes migrated-output/{repoName}/ with a full unmodified copy of the source (creating it if absent, leaving any other repo's output folder untouched), then invokes the Codebase Analysis Agent to recursively scan all .sln/.csproj/.fsproj/.vbproj files, classify project types and migration readiness, build the project dependency graph, and write solution-map.json. Never modifies the original source project.",
+        "input_schema": "Source project root path, sourceVersion, targetVersion.",
+        "output_schema": "migrated-output/{repoName}/ initialized with a full source copy, plus migrated-output/{repoName}/.migration/solution-map.json.",
+        "async": true
+      },
+      {
+        "name": "Invoke Dependency Mapping and API Compatibility agents",
+        "description": "Calls the Dependency Mapping Agent to extract every NuGet PackageReference from the original source, resolve compatible versions for targetVersion via the NuGet API (falling back to an offline matrix if unreachable), and flag inbox/removed/no-compatible-version packages. Then calls the API Compatibility Agent to scan all original .cs files against the cumulative breaking-changes rule set for the sourceVersion\u2192targetVersion path (e.g. BinaryFormatter removal, Thread.Abort(), Startup.cs hosting model, ConfigurationManager), tagging each issue with severity, autoFixable status, and an outputFile path inside migrated-output/.",
+        "input_schema": "solution-map.json, sourceVersion, targetVersion.",
+        "output_schema": "migrated-output/{repoName}/.migration/dependency-report.json and compatibility-report.json.",
+        "async": true
+      },
+      {
+        "name": "Invoke Code Refactoring Agent against migrated-output/ only",
+        "description": "Calls the Code Refactoring Agent to apply every auto-fixable issue from compatibility-report.json and every package/TFM update from dependency-report.json exclusively to the copies inside migrated-output/{repoName}/ \u2014 updating .csproj TargetFramework, PackageReference versions, global.json SDK version, and rewriting flagged C# patterns. Inserts // TODO [MIGRATION] markers for non-auto-fixable issues, validates every modified file with Roslyn, and restores any file from the original source if a transformation breaks syntax.",
+        "input_schema": "solution-map.json, dependency-report.json, compatibility-report.json.",
+        "output_schema": "Modified .csproj/.cs files inside migrated-output/{repoName}/ and refactoring-summary.json.",
+        "async": true
+      },
+      {
+        "name": "Build and gate the pipeline; rollback on failure",
+        "description": "Calls the Build & Compilation Agent to run dotnet restore and dotnet build --configuration Release --no-incremental exclusively against migrated-output/{repoName}/, classify every MSBuild error/warning, and write build-result.json. On any build failure it automatically invokes the Rollback Agent, which deletes only migrated-output/{repoName}/ (every other repo folder and the original source are left untouched) and halts the pipeline. On success it proceeds to Test Execution.",
+        "input_schema": "refactoring-summary.json, targetVersion, installed .NET SDK.",
+        "output_schema": "build-result.json with outcome Success/Failed, or a Rollback Complete report and pipeline halt.",
+        "async": true
+      },
+      {
+        "name": "Run tests, critique quality, and generate the sign-off report",
+        "description": "Gated on build success, calls the Test Execution Agent to run dotnet test against migrated-output/{repoName}/, classifying every failure as MigrationCaused, PreExisting, or Incompatible without ever triggering rollback on test failures. Optionally invokes the Migration Critique Agent to score the run across build integrity, test results, dependency health, modernization, TODO debt, and reversibility, producing a letter grade and shipping-readiness verdict. Finally invokes the Reporting Agent to aggregate every upstream JSON artifact into a single migrated-output/{repoName}/migration-report.md with TODO markers, manual-action items, and next steps.",
+        "input_schema": "build-result.json (must be Success), solution-map.json, dependency-report.json, compatibility-report.json, refactoring-summary.json.",
+        "output_schema": "test-result.json, optional critique-report.json, and migrated-output/{repoName}/migration-report.md.",
+        "async": true
+      }
+    ],
+    "documentation": {
+      "readme": "",
+      "howto": "",
+      "changelog": ""
+    },
+    "supported_harness": [
+      "GitHub Copilot",
+      "Claude"
+    ]
+  }
+}
