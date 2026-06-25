@@ -1,0 +1,163 @@
+{
+  "skill_card": {
+    "starterkit_id": "nextjs-version-upgrade-orchestrator",
+    "name": "Next.js Upgrade Orchestrator Agent",
+    "description": "A conductor agent that orchestrates a 7-step Next.js version upgrade pipeline (e.g. 12→13, 13→14, 14→15). It does not analyze, refactor, build, or test code itself; it invokes the Codebase Analysis & Planning, Codemod Runner, Reconciliation, Code Transformation, Validation, Critic, and Reporting subagents in sequence, each writing JSON artifacts into a per-repo upgraded-output/{repoName}/.upgrade/ folder. It enforces a strict golden rule across every subagent — the original source project is never modified, only read — so a failed upgrade carries zero risk to the source. It operates in three modes (Single File, Multi-File, Full Project) with auto-detection, captures a behavioral baseline before any change, and gates on no new test failures vs. baseline rather than absolute green. On completion it delivers an auditable, source-safe upgrade workflow with isolated per-repo outputs and a final human-readable upgrade-report.md. App Router migration is explicitly out of scope — the router always stays on its current type.",
+    "origin": {
+      "BG": "AI and ST",
+      "ISU": "AI and ST",
+      "Account": "AI AD"
+    },
+    "maintainers": [
+      {
+        "name": "Ram Sabarish J K R",
+        "contact": "ramsabarish.jkr@tcs.com"
+      },
+      {
+        "name": "Lakshya Kumar",
+        "contact": "lakshya.k1@tcs.com"
+      }
+    ],
+    "version": "1.0.0",
+    "status": "verified",
+    "technology": [
+      "Next.js",
+      "React",
+      "TypeScript",
+      "JavaScript",
+      "@next/codemod",
+      "ESLint",
+      "tsc",
+      "Node.js",
+      "pnpm / yarn / npm"
+    ],
+    "specialization": {
+      "primary": "agent_orchestration",
+      "domain_specific": [
+        "Multi-agent Coordination",
+        "Source-Safe Upgrade (Read-Only Source, Write-Only Output)",
+        "Deterministic Codemod-First Transforms",
+        "Behavioral Baseline Capture & Test Gating",
+        "Tiered Validation (tsc+lint / test-suite / next build)",
+        "LLM Residual Transformation with Retry Loop",
+        "Semantic Critic for High-Risk Diffs",
+        "Objective Confidence Scoring (never self-reported)"
+      ]
+    },
+    "tasks": [
+      {
+        "name": "Initialize repo-scoped run, detect mode, and capture behavioral baseline",
+        "description": "Derives {repoName} from the source project root folder and auto-detects the upgrade mode (Single File, Multi-File, or Full Project) based on what the user provides. In Full Project mode, creates upgraded-output/{repoName}/ as a sibling of the source project in the current working directory (never inside the source), copies the entire source tree unmodified, auto-detects the package manager from the lockfile (pnpm/yarn/npm), installs dependencies, runs the test suite, runs tsc --noEmit and the linter, and optionally runs next build. Writes all results to upgraded-output/{repoName}/.upgrade/baseline.json including preExistingFailures and preExistingDiagnostics. The test gate throughout the pipeline is no new failures vs. this baseline, never absolute green. Baseline capture is skipped in Single File and Multi-File modes.",
+        "input_schema": "Source project path or file, sourceVersion, targetVersion (from inline prompt or upgrade.config.json; inline wins).",
+        "output_schema": "upgraded-output/{repoName}/ initialized with a full unmodified source copy, plus upgraded-output/{repoName}/.upgrade/baseline.json (Full Project mode only).",
+        "async": true
+      },
+      {
+        "name": "Invoke Codebase Analysis & Planning Agent to build an ordered upgrade manifest",
+        "description": "Calls the codebase-analysis-planning-agent to scan every source file (map-reduce per directory for large repos), inventory the current Next.js version, deprecated API usages, configuration patterns, and router type, and produce a per-file risk score. Outputs an ordered, dependency-sequenced JSON manifest of all changes needed. Runs in all three modes (Single File, Multi-File, Full Project).",
+        "input_schema": "upgraded-output/{repoName}/ (copied source tree), sourceVersion, targetVersion.",
+        "output_schema": "upgraded-output/{repoName}/.upgrade/upgrade-manifest.json with per-file risk scores and ordered change list.",
+        "async": true
+      },
+      {
+        "name": "Invoke Codemod Runner Agent to apply deterministic @next/codemod transforms",
+        "description": "Calls the codemod-runner-agent to run npx @next/codemod@<targetVersion> against the copied tree in upgraded-output/{repoName}/. Tags every change as handled (fully addressed), partial (incompletely addressed), or skipped (codemod had no rule). Never touches the original source. Produces a structured record of what the codemod actually did — this is the authoritative input for the Reconciliation Agent, not the Planner's prediction. Runs in Multi-File and Full Project modes; skipped in Single File mode.",
+        "input_schema": "upgrade-manifest.json, upgraded-output/{repoName}/ (copied source), targetVersion.",
+        "output_schema": "upgraded-output/{repoName}/.upgrade/codemod-result.json with per-change handled/partial/skipped tags.",
+        "async": true
+      },
+      {
+        "name": "Invoke Reconciliation Agent to compute LLM residuals",
+        "description": "Calls the reconciliation-agent to diff the upgrade-manifest.json against codemod-result.json and compute the residual set — every manifest item NOT fully handled by the codemod. This residual list is what the Code Transformation Agent will receive; it never re-processes anything the codemod already completed. Runs in Multi-File and Full Project modes; skipped in Single File mode.",
+        "input_schema": "upgrade-manifest.json, codemod-result.json.",
+        "output_schema": "upgraded-output/{repoName}/.upgrade/residuals.json — ordered list of changes still requiring LLM transformation.",
+        "async": true
+      },
+      {
+        "name": "Invoke Code Transformation Agent for LLM-only residual rewrites with retry loop",
+        "description": "Calls the code-transformation-agent to rewrite only the residual items from residuals.json. Groups residuals into batches, each written to an isolated branch/worktree. For anything not safely auto-fixable, inserts // TODO [UPGRADE] markers rather than guessing. In Full Project mode, each batch enters a Tier-1 retry loop: tsc --noEmit + ESLint are run; on failure, diagnostics are fed back to the transformer for up to maxTransformRetries (default 2) attempts; if still red after retries, the batch is flagged for human review and the loop exits. Runs in all three modes.",
+        "input_schema": "residuals.json (Single File: the one file itself), upgraded-output/{repoName}/ working tree.",
+        "output_schema": "Transformed files in upgraded-output/{repoName}/ per-batch branches, upgraded-output/{repoName}/.upgrade/transform-summary.json.",
+        "async": true
+      },
+      {
+        "name": "Invoke Validation Agent for tiered gating (Full Project only)",
+        "description": "Calls the validation-agent to enforce three tiers of quality gates exclusively in Full Project mode. Tier 1 (per batch, retry loop ≤2×): tsc --noEmit + ESLint — gate is no new diagnostics vs. baseline. Tier 2 (once, after all Tier-1 passes): existing test suite — gate is no new failures vs. baseline.json; one feedback attempt to the transformer on failure, then FLAG if still red. Tier 3 (once, at the very end, outside every loop): full next build — a failure flags the entire run and the Reporter lists suspect batches by files touched. There is no next build --dry-run; Tier 3 is the only cross-batch integration check. Skipped in Single File and Multi-File modes.",
+        "input_schema": "transform-summary.json, baseline.json, upgraded-output/{repoName}/ working tree.",
+        "output_schema": "upgraded-output/{repoName}/.upgrade/validation-report.json with per-tier pass/fail and flagged batches.",
+        "async": true
+      },
+      {
+        "name": "Invoke Critic Agent for semantic review of high-risk LLM diffs",
+        "description": "Calls the critic-agent to perform semantic correctness review. In fast mode (default), reviews only high-risk LLM diffs — App-Router-adjacent rewrites, data-fetching changes (getServerSideProps/getStaticProps), next/image rewrites. In strict mode, reviews every LLM diff. Deterministic over/under-migration checks run regardless of mode. Can veto a diff at most once per batch: on veto, the diff is re-transformed and re-validated; if still bad, the batch is flagged (the critic never loops). Runs with limited scope in Multi-File mode (no build/test signal); full scope in Full Project mode; skipped in Single File mode.",
+        "input_schema": "transform-summary.json, validation-report.json, upgraded-output/{repoName}/ working tree, criticStrictness flag.",
+        "output_schema": "upgraded-output/{repoName}/.upgrade/critic-report.json with per-diff verdicts, veto records, and any re-flagged batches.",
+        "async": true
+      },
+      {
+        "name": "Invoke Reporting Agent to generate the final human-readable upgrade report",
+        "description": "Calls the reporting-agent to aggregate every upstream JSON artifact (baseline, manifest, codemod-result, residuals, transform-summary, validation-report, critic-report) into a single upgrade-report.md. Computes per-file objective confidence scores from pipeline signals — codemod-applied changes receive high confidence by construction; LLM-applied changes are scored by Tier-1 pass, Tier-2 test gate, critic approval, diff size/complexity, and high-risk manifest flag. The Transformer never self-rates. Lists all auto-applied changes (labelled codemod vs. LLM), all flagged batches, all // TODO [UPGRADE] markers, all pre-existing failures excluded from the gate, and a structured manual-review artifact. Runs in all three modes.",
+        "input_schema": "All .upgrade/ JSON artifacts, upgraded-output/{repoName}/ final tree.",
+        "output_schema": "upgraded-output/{repoName}/upgrade-report.md — final deliverable with confidence rubric, manual-review checklist, and next steps.",
+        "async": true
+      }
+    ],
+    "modes": {
+      "single_file": {
+        "trigger": "Input is a single .tsx/.jsx/.ts/.js file path",
+        "agents_run": ["codebase-analysis-planning-agent", "code-transformation-agent", "reporting-agent"],
+        "agents_skipped": ["codemod-runner-agent", "reconciliation-agent", "validation-agent", "critic-agent"],
+        "notes": "No project context — no codemod project run, no install, no build, no tests, no baseline. Skip reasons recorded in report."
+      },
+      "multi_file": {
+        "trigger": "Input is a folder of source files with no package.json",
+        "agents_run": ["codebase-analysis-planning-agent", "codemod-runner-agent", "reconciliation-agent", "code-transformation-agent", "critic-agent (limited)", "reporting-agent"],
+        "agents_skipped": ["validation-agent"],
+        "notes": "No build/test signal available. Critic runs with limited scope."
+      },
+      "full_project": {
+        "trigger": "Input folder contains a package.json with a next dependency",
+        "agents_run": ["all — steps 0 through 7"],
+        "agents_skipped": [],
+        "notes": "Primary mode. Baseline capture, all validation tiers, full critic scope."
+      }
+    },
+    "config": {
+      "file": "upgrade.config.json",
+      "precedence": "Inline prompt always wins over upgrade.config.json",
+      "flags": {
+        "sourceVersion": "Source Next.js semver (e.g. 13.5.0)",
+        "targetVersion": "Target Next.js semver (e.g. 15.0.0). Pipeline never upgrades past this.",
+        "sourceProjectPath": "Path to the source Next.js project",
+        "outputPath": "Resolved against CWD/workspace root, never against sourceProjectPath",
+        "packageManager": "auto (detect from lockfile), pnpm, yarn, or npm",
+        "runTests": true,
+        "rollbackOnFailure": false,
+        "maxTransformRetries": 2,
+        "criticStrictness": "fast",
+        "migrateAppRouter": false,
+        "generateReport": true
+      },
+      "flag_rationale": {
+        "rollbackOnFailure_false": "Preserve output + report on failure; deleting everything leaves the developer nothing to fix.",
+        "maxTransformRetries_2": "Transformer↔Validator Tier-1 inner loop retries at most twice, then flags the batch. Prevents ping-pong.",
+        "criticStrictness_fast": "Reviews only high-risk LLM diffs by default. Use strict for risky upgrades.",
+        "migrateAppRouter_false": "App Router migration is a separate product. true is refused with a Reporter finding."
+      }
+    },
+    "out_of_scope": [
+      "App Router migration (pages/ → app/, getServerSideProps/getStaticProps → server components, _app/_document → root layout)",
+      "migrateAppRouter: true — refused with Reporter finding"
+    ],
+    "output_directory_rule": "upgraded-output/{repoName}/ is created in the CWD (workspace root) as a SIBLING of the source project. NEVER inside the source project. The original source tree is the backup — it is never touched.",
+    "documentation": {
+      "readme": "",
+      "howto": "",
+      "changelog": ""
+    },
+    "supported_harness": [
+      "GitHub Copilot",
+      "Claude"
+    ]
+  }
+}
