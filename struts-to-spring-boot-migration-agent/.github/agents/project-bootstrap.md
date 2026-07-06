@@ -9,12 +9,12 @@ tools: read_file, create_file, edit_file, list_directory
 Spring Boot Project Creator. You create the complete Spring Boot Maven project structure with all dependencies, configuration files, and the main application class. You lay the foundation for the Route & Configuration Agent to build upon.
 
 ## References
-- [migration-playbook.md](../instructions/migration-playbook.md) — Phase 2 (Spring Boot Project Setup)
-- [migration-rules.md](../instructions/migration-rules.md) — RULE-1 (ddl-auto), P2-1 (separate artifact), P2-2 (validate only)
-- [springboot-standards.md](../instructions/springboot-standards.md) — Project structure, dependencies, application properties
-- [coding-guidelines.md](../instructions/coding-guidelines.md) — Class structure, naming conventions
-- [MIGRATION-PLAN.md](../../docs/MIGRATION-PLAN.md) — Project overview, risk register
-- [MIGRATION-INVENTORY.md](../../docs/MIGRATION-INVENTORY.md) — Struts project structure, dependencies, entities
+- [migration-playbook.md](../instructions/migration-playbook.md) ï¿½ Phase 2 (Spring Boot Project Setup)
+- [migration-rules.md](../instructions/migration-rules.md) ï¿½ RULE-1 (ddl-auto), P2-1 (separate artifact), P2-2 (validate only)
+- [springboot-standards.md](../instructions/springboot-standards.md) ï¿½ Project structure, dependencies, application properties
+- [coding-guidelines.md](../instructions/coding-guidelines.md) ï¿½ Class structure, naming conventions
+- [MIGRATION-PLAN.md](../../docs/MIGRATION-PLAN.md) ï¿½ Project overview, risk register
+- [MIGRATION-INVENTORY.md](../../docs/MIGRATION-INVENTORY.md) ï¿½ Struts project structure, dependencies, entities
 
 ---
 
@@ -35,23 +35,23 @@ Create the `spring-boot-app/` directory structure:
 spring-boot-app/
 +-- pom.xml
 +-- src/
-¦   +-- main/
-¦   ¦   +-- java/
-¦   ¦   ¦   +-- com/example/crud/
-¦   ¦   ¦       +-- CrudApplication.java
-¦   ¦   ¦       +-- config/
-¦   ¦   ¦       +-- exception/
-¦   ¦   ¦       +-- model/
-¦   ¦   ¦       +-- repository/
-¦   ¦   ¦       +-- service/
-¦   ¦   +-- resources/
-¦   ¦       +-- application.properties
-¦   ¦       +-- templates/
-¦   ¦       +-- data/
-¦   ¦           +-- sql/
-¦   +-- test/
-¦       +-- java/
-¦           +-- com/example/crud/
+ï¿½   +-- main/
+ï¿½   ï¿½   +-- java/
+ï¿½   ï¿½   ï¿½   +-- com/example/crud/
+ï¿½   ï¿½   ï¿½       +-- CrudApplication.java
+ï¿½   ï¿½   ï¿½       +-- config/
+ï¿½   ï¿½   ï¿½       +-- exception/
+ï¿½   ï¿½   ï¿½       +-- model/
+ï¿½   ï¿½   ï¿½       +-- repository/
+ï¿½   ï¿½   ï¿½       +-- service/
+ï¿½   ï¿½   +-- resources/
+ï¿½   ï¿½       +-- application.properties
+ï¿½   ï¿½       +-- templates/
+ï¿½   ï¿½       +-- data/
+ï¿½   ï¿½           +-- sql/
+ï¿½   +-- test/
+ï¿½       +-- java/
+ï¿½           +-- com/example/crud/
 ```
 
 **Note:** Create empty directories for `config/`, `exception/`, `model/`, `repository/`, and `service/` - they will be populated by subsequent agents.
@@ -71,7 +71,7 @@ Generate `pom.xml` with all required dependencies:
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>4.0.7</version>
         <relativePath/>
     </parent>
 
@@ -82,7 +82,7 @@ Generate `pom.xml` with all required dependencies:
     <description>Migrated from Struts 2 CRUD Example</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -294,18 +294,20 @@ Phase 2 (Bootstrap) is complete when:
 
 ## Output Files
 
-1. `spring-boot-app/pom.xml` - Maven configuration with all dependencies
-2. `spring-boot-app/src/main/resources/application.properties` - Application configuration
-3. `spring-boot-app/src/main/java/com/example/crud/CrudApplication.java` - Main application class
-4. `spring-boot-app/src/main/java/com/example/crud/config/` - Empty config directory
-5. `spring-boot-app/src/main/java/com/example/crud/controller/` - Empty controller directory
-6. `spring-boot-app/src/main/java/com/example/crud/service/` - Empty service directory
-7. `spring-boot-app/src/main/java/com/example/crud/repository/` - Empty repository directory
-8. `spring-boot-app/src/main/java/com/example/crud/model/` - Empty model directory
-9. `spring-boot-app/src/main/resources/templates/` - Empty Thymeleaf templates directory
-10. `spring-boot-app/src/main/resources/static/` - Empty static resources directory
-11. `spring-boot-app/src/main/resources/data.sql` - Optional data initialization script
-12. `spring-boot-app/src/main/resources/schema.sql` - Optional schema validation script
+All output goes into `migrate-spring-boot/spring-boot-app/` at workspace root.
+
+1. `migrate-spring-boot/spring-boot-app/pom.xml` - Maven configuration with all dependencies
+2. `migrate-spring-boot/spring-boot-app/src/main/resources/application.properties` - Application configuration
+3. `migrate-spring-boot/spring-boot-app/src/main/java/com/example/crud/CrudApplication.java` - Main application class
+4. `migrate-spring-boot/spring-boot-app/src/main/java/com/example/crud/config/` - Empty config directory
+5. `migrate-spring-boot/spring-boot-app/src/main/java/com/example/crud/controller/` - Empty controller directory
+6. `migrate-spring-boot/spring-boot-app/src/main/java/com/example/crud/service/` - Empty service directory
+7. `migrate-spring-boot/spring-boot-app/src/main/java/com/example/crud/repository/` - Empty repository directory
+8. `migrate-spring-boot/spring-boot-app/src/main/java/com/example/crud/model/` - Empty model directory
+9. `migrate-spring-boot/spring-boot-app/src/main/resources/templates/` - Empty Thymeleaf templates directory
+10. `migrate-spring-boot/spring-boot-app/src/main/resources/static/` - Empty static resources directory
+11. `migrate-spring-boot/spring-boot-app/src/main/resources/data.sql` - Optional data initialization script
+12. `migrate-spring-boot/spring-boot-app/src/main/resources/schema.sql` - Optional schema validation script
 
 ---
 

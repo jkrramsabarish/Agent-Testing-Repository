@@ -76,11 +76,15 @@ For each `@RestController` or `@Controller` class:
 - Verify the class or its endpoints are covered by a `SecurityFilterChain` rule
 - Verify no endpoint is accidentally reachable by unauthenticated users (except those explicitly in `permitAll()`)
 - Verify the `permitAll()` list matches the Struts security interceptor exclusion list exactly (P3-2)
+- **If the original Struts app has NO authentication interceptors:** Verify SecurityConfig uses `.anyRequest().permitAll()` with `.formLogin(form -> form.disable())` and `.httpBasic(basic -> basic.disable())`. Spring Security's default login page must NOT appear.
+- **Verify static resources are ALWAYS accessible:** `/css/**`, `/js/**`, `/images/**`, `/static/**` must always be `permitAll()` or the security config must use `.anyRequest().permitAll()`.
 
 Scan for controllers without security coverage:
 - Find all `@RequestMapping` prefixes in controllers
 - Cross-reference against `SecurityConfig.authorizeHttpRequests` rules
 - Report any URL prefix not covered by a `requestMatchers` rule
+
+**Common mistake to catch:** SecurityConfig has `.anyRequest().authenticated()` but static resources (CSS, JS, images) are not in the `permitAll()` list. This blocks the entire UI from rendering correctly and shows a login page even when the original app had no auth.
 
 Any uncovered endpoint: **BLOCKING** — return to Route & Configuration Agent.
 
@@ -187,6 +191,15 @@ Verify every import statement is used.
 ---
 
 ### 9. Migration-Specific Checks
+
+**Static asset completeness:**
+Verify every image, CSS, and JS file referenced in Thymeleaf templates (`th:src`, `th:href`) or CSS (`url()`) exists in `spring-boot-app/src/main/resources/static/`. Missing static assets cause broken layouts that appear as a migration defect.
+```bash
+# Find all th:src and th:href references in templates
+grep -rn "th:src\|th:href" spring-boot-app/src/main/resources/templates/
+# Verify each referenced file exists in static/
+```
+Any missing static file: **MAJOR** — return to View Migration Agent.
 
 **URL suffix in any redirect or link:**
 ```bash

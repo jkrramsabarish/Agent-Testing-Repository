@@ -28,7 +28,7 @@ Each migrated module must produce tests at three levels:
          (full stack, shared DB)
          ─────────────────────────────────
          Controller Slice Tests
-         @WebMvcTest (HTTP layer, no full context)
+         @SpringBootTest + @AutoConfigureMockMvc (HTTP layer)
          ─────────────────────────────────────────
          Unit Tests
          Plain JUnit, Mockito (no Spring context)
@@ -104,13 +104,14 @@ class PersonServiceImplTest {
 
 ### Setup
 ```java
-@WebMvcTest(PersonController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 class PersonControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private PersonService personService;
 
     @Autowired
@@ -154,8 +155,8 @@ class PersonControllerTest {
 ```
 
 ### Rules
-- Use `@WebMvcTest` — not `@SpringBootTest`
-- Mock all services with `@MockBean`
+- Use `@SpringBootTest` + `@AutoConfigureMockMvc` for controller slice tests
+- Mock all services with `@MockitoBean`
 - Test every HTTP status code: 200, 201, 400, 401, 403, 404, 500
 - Test security: both authenticated and unauthenticated requests
 - Test validation: submit invalid input and assert 400 + error structure
@@ -273,7 +274,7 @@ Document the rollback time in the module's completion report.
 
 | Anti-Pattern | Problem | Correct Approach |
 |---|---|---|
-| `@SpringBootTest` for every test | Too slow | Use `@WebMvcTest` for controller layer |
+| `@WebMvcTest` for controller tests | Compatibility issues in Spring Boot 4.x | Use `@SpringBootTest` + `@AutoConfigureMockMvc` for controller layer |
 | H2 in-memory DB for integration tests | Masks schema differences | Use the shared MySQL/PostgreSQL DB |
 | `ddl-auto=create-drop` in test config | Destroys shared DB data | Use `validate` always |
 | Tests with no assertions | Meaningless | Every test must assert something |
@@ -292,7 +293,7 @@ src/test/java/com/example/app/
 ├── service/
 │   └── PersonServiceImplTest.java          # Unit test for service
 ├── controller/
-│   └── PersonControllerTest.java           # @WebMvcTest controller slice
+│   └── PersonControllerTest.java           # @SpringBootTest + @AutoConfigureMockMvc controller slice
 └── integration/
     ├── PersonIntegrationTest.java           # Full stack integration
     └── SecurityIntegrationTest.java         # Security rules integration test

@@ -58,22 +58,30 @@ curl http://localhost:8081/actuator/health
 
 **Authentication validation:**
 ```bash
+# If the original Struts app had NO authentication interceptors:
+# Verify that NO login page appears when accessing any URL
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/
+# Expected: HTTP 200 (not 302 redirect to /login)
+
+# Verify static resources are accessible without auth
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/css/lic.css
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/images/einsurance.jpg
+# Expected: HTTP 200 for all static resources
+
+# If the original Struts app HAD authentication interceptors:
 # Test login with default credentials
 curl -X POST http://localhost:8081/login \
   -d "username=admin&password=admin" \
   -L -c cookies.txt -b cookies.txt
-
 # Expected: HTTP 302 redirect to home page or successful login response
-# If 401/403: authentication not configured - report to Route & Configuration Agent
 
 # Test accessing protected endpoint without login
 curl http://localhost:8081/listPersons
-
 # Expected: HTTP 302 redirect to /login
 # If 200 OK: security not configured correctly - report to Route & Configuration Agent
 ```
 
-**Rule P3-4:** Authentication MUST be validated before any functional testing. Without working authentication, all protected endpoints are inaccessible.
+**Rule P3-4:** Authentication behavior MUST match the original Struts app exactly. If the original had no auth, Spring Boot must NOT show a login page.
 
 ---
 
@@ -240,18 +248,18 @@ class {Module}ServiceImplTest {
 
 ### 3. Controller Slice Tests
 
-For each controller in the current module, generate `@WebMvcTest` tests:
+For each controller in the current module, generate `@SpringBootTest` + `@AutoConfigureMockMvc` tests:
 
 ```java
 // Template: src/test/java/.../controller/{Module}ControllerTest.java
-@WebMvcTest({Module}Controller.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@SpringBootTest
+@AutoConfigureMockMvc
 class {Module}ControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private {Module}Service {module}Service;
 
     @Test

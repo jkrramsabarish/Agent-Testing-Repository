@@ -66,7 +66,7 @@ struts-to-spring-boot-migration-agent/
 │   │   │       └── templates/         ← Thymeleaf HTML templates
 │   │   └── test/
 │   │       └── java/com/example/
-│   │           ├── controller/        ← @WebMvcTest tests
+│   │           ├── controller/        ← @SpringBootTest + @AutoConfigureMockMvc tests
 │   │           ├── service/           ← Unit tests
 │   │           └── integration/       ← @SpringBootTest tests
 │   └── pom.xml
@@ -351,7 +351,7 @@ All agents inherit these shared instruction files automatically via the `applyTo
 |---|---|
 | [instructions/migration-playbook.md](instructions/migration-playbook.md) | Phases 1–6, all mapping tables, pitfalls |
 | [instructions/migration-rules.md](instructions/migration-rules.md) | 7 absolute rules + phase gates |
-| [instructions/springboot-standards.md](instructions/springboot-standards.md) | Spring Boot 3.x patterns, project structure |
+| [instructions/springboot-standards.md](instructions/springboot-standards.md) | Spring Boot 4.x patterns, project structure |
 | [instructions/coding-guidelines.md](instructions/coding-guidelines.md) | Java coding standards, forbidden patterns |
 | [instructions/testing-guidelines.md](instructions/testing-guidelines.md) | Test pyramid, parallel verification, coverage |
 | [instructions/documentation-guidelines.md](instructions/documentation-guidelines.md) | Document formats and writing standards |

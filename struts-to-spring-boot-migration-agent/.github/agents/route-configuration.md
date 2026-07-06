@@ -55,6 +55,13 @@ logging.level.org.hibernate.SQL=WARN
 ### 2. Spring Security Configuration
 Create `src/main/java/.../config/SecurityConfig.java` that replicates Struts security rules:
 
+**CRITICAL — Match Original App Behavior Exactly (RULE P3-2):**
+- If the Struts app has NO authentication interceptors (no login requirement), the SecurityConfig MUST use `.anyRequest().permitAll()` — do NOT add authentication that didn't exist in the original.
+- If the Struts app HAS authentication interceptors, replicate their URL patterns exactly.
+- Static resources (`/css/**`, `/js/**`, `/images/**`, `/static/**`) MUST ALWAYS be `.permitAll()` regardless of other security rules.
+- When using `.anyRequest().permitAll()`, also disable form login and HTTP basic to prevent Spring Security's default login page from appearing.
+
+**Option A: No Authentication in Original Struts App:**
 ```java
 @Configuration
 @EnableWebSecurity
@@ -64,7 +71,28 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/error").permitAll()
+                .anyRequest().permitAll()
+            )
+            .csrf(csrf -> csrf.disable())
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable());
+        return http.build();
+    }
+}
+```
+
+**Option B: Authentication Exists in Original Struts App:**
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
+                .requestMatchers("/login", "/error", "/actuator/health").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
@@ -83,7 +111,7 @@ public class SecurityConfig {
 ```
 
 **Rule P3-1:** Security MUST be configured before any Action class migration.
-**Rule P3-2:** Security rules MUST match Struts exactly. No relaxing or tightening of access control.
+**Rule P3-2:** Security rules MUST match Struts exactly. No relaxing or tightening of access control. If Struts has no auth, Spring Boot must have no auth.
 
 ### 2.1 User Authentication Provider Configuration
 
@@ -179,7 +207,7 @@ For each Struts interceptor, create Spring equivalents:
 | `token` | `@CsrfToken` (Spring Security) |
 | `logger` | `@Slf4j` + `@Aspect` |
 | `authentication` | Spring Security filters |
-| `custom interceptor` | `@Component` + `HandlerInterceptorAdapter` |
+| `custom interceptor` | `@Component` + `HandlerInterceptor` |
 
 Create interceptors as Spring beans and register in `WebMvcConfigurer`:
 

@@ -376,6 +376,7 @@ Update `docs/MIGRATION-INVENTORY.md`: change module status from `In Progress` to
 - Expand wildcard Struts routes into explicit Spring mappings
 - Add `@Transactional` to service write methods
 - Add `@Transactional(readOnly = true)` to service query methods
+- Verify SecurityConfig matches the original Struts app's auth behavior. If Struts had no auth interceptors, SecurityConfig MUST use `.anyRequest().permitAll()` with `.formLogin(form -> form.disable())` and `.httpBasic(basic -> basic.disable())` — never introduce authentication that didn't exist in the original
 - Update `docs/MIGRATION-INVENTORY.md` with module status after each class is migrated
 
 ---

@@ -113,7 +113,7 @@ Before/after architecture diagrams (text-based)
 ## Technology Stack Changes
 | Component | Before (Struts) | After (Spring Boot) |
 |---|---|---|
-| Web framework | Apache Struts 2 | Spring Boot 3.x |
+| Web framework | Apache Struts 2 | Spring Boot 4.x |
 | View layer | JSP + Struts Tags | Thymeleaf / REST |
 | Security | Custom interceptors | Spring Security |
 | DI container | Spring (manual) | Spring Boot auto-config |

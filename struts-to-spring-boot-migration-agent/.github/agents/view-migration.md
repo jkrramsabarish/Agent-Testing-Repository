@@ -165,15 +165,24 @@ If the controller had `@ModelAttribute` for dropdown lists:
 
 ### 4. Static Asset Migration
 
-Move all static files from Struts WAR layout to Spring Boot static directory:
+Move **ALL** static files from the Struts WAR layout to Spring Boot static directory. This includes images, CSS, JavaScript, fonts, and any other non-Java/non-JSP files in the web root or subdirectories.
+
+**CRITICAL:** Do not miss image files (`.jpg`, `.png`, `.gif`, `.ico`, `.svg`) that are referenced in JSP/HTML templates or CSS files. Scan the Struts `webapp/` directory (or `web/` directory for Ant projects) recursively for all non-JSP, non-XML assets.
 
 | Struts Source | Spring Boot Destination |
 |---|---|
-| `src/main/webapp/css/` | `src/main/resources/static/css/` |
-| `src/main/webapp/js/` | `src/main/resources/static/js/` |
-| `src/main/webapp/images/` | `src/main/resources/static/images/` |
-| `src/main/webapp/fonts/` | `src/main/resources/static/fonts/` |
-| `src/main/webapp/favicon.ico` | `src/main/resources/static/favicon.ico` |
+| `webapp/*.jpg`, `webapp/*.png`, `webapp/*.gif` | `src/main/resources/static/images/` |
+| `webapp/css/` or `webapp/*.css` | `src/main/resources/static/css/` |
+| `webapp/js/` or `webapp/*.js` | `src/main/resources/static/js/` |
+| `webapp/images/` | `src/main/resources/static/images/` |
+| `webapp/fonts/` | `src/main/resources/static/fonts/` |
+| `webapp/favicon.ico` | `src/main/resources/static/favicon.ico` |
+
+**Steps:**
+1. Recursively scan `struts-app/` web root (`webapp/` or `web/`) for ALL static files: `*.css`, `*.js`, `*.jpg`, `*.jpeg`, `*.png`, `*.gif`, `*.svg`, `*.ico`, `*.woff`, `*.ttf`, `*.eot`
+2. Copy each file to the appropriate `static/` subdirectory
+3. Verify every `th:src`, `th:href`, and `url()` reference in templates/CSS resolves to an existing file in `static/`
+4. Test that each static resource returns HTTP 200 when accessed via `http://localhost:8081/{path}`
 
 Spring Boot serves `static/` resources automatically at the same URL paths. No servlet mapping required.
 

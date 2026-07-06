@@ -4,7 +4,7 @@ applyTo: "**"
 
 # Spring Boot Standards
 
-> **Scope:** Enterprise-grade Spring Boot 3.x patterns that all generated code must follow.
+> **Scope:** Enterprise-grade Spring Boot 4.x patterns that all generated code must follow.
 > These standards apply to every file produced by any migration agent.
 
 ---
@@ -51,7 +51,7 @@ src/
 │               └── edit.html
 └── test/
     └── java/com/example/app/
-        ├── controller/                       # @WebMvcTest tests
+        ├── controller/                       # @SpringBootTest + @AutoConfigureMockMvc tests
         ├── service/                          # Unit tests
         └── integration/                      # @SpringBootTest tests
 ```

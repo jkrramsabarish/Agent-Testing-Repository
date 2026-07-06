@@ -74,7 +74,7 @@ For every custom interceptor class and every interceptor stack in `struts.xml`:
 - Spring Boot equivalent: `SecurityFilterChain` / `HandlerInterceptor` / `OncePerRequestFilter` / `@Transactional`
 
 ### 5. Filter Inventory
-For every `javax.servlet.Filter` in `web.xml`:
+For every `jakarta.servlet.Filter` in `web.xml`:
 
 - Filter class name
 - URL pattern
@@ -148,7 +148,9 @@ All inputs are inside `struts-app/` — read-only, never modified.
 
 ## Outputs
 
-### Primary Output: `docs/MIGRATION-INVENTORY.md`
+All outputs go into the `migrate-spring-boot/` folder at workspace root. The `struts-app/` folder is read-only input and must never be modified.
+
+### Primary Output: `migrate-spring-boot/docs/MIGRATION-INVENTORY.md`
 
 Populate all sections of the inventory with the findings. Every row must have a `Status` column initialized to `Pending`.
 
@@ -163,7 +165,7 @@ Populate all sections of the inventory with the findings. Every row must have a 
 8. Entity Inventory (table format)
 9. Dependency Inventory (table format)
 
-### Secondary Output: `docs/AUDIT-REPORT.md`
+### Secondary Output: `migrate-spring-boot/docs/AUDIT-REPORT.md`
 
 Summary findings:
 - Total Action classes: X
@@ -260,13 +262,13 @@ If the Convention plugin is used (no `struts.xml` — actions discovered by anno
 ---
 
 ## Definition of Done
-- [ ] Every Action class in `struts-app/` is in `docs/MIGRATION-INVENTORY.md`
+- [ ] Every Action class in `struts-app/` is in `migrate-spring-boot/docs/MIGRATION-INVENTORY.md`
 - [ ] Every `struts.xml` route is in the inventory
 - [ ] Every JSP file in `struts-app/src/main/webapp/WEB-INF/jsp/` is in the inventory with view strategy noted
 - [ ] Every custom interceptor is in the inventory
 - [ ] Every service class is in the inventory (including whether it uses `new` instantiation)
 - [ ] Every Struts-specific dependency from `struts-app/pom.xml` is listed with its Spring Boot equivalent
-- [ ] `docs/AUDIT-REPORT.md` completed with totals and risk summary
+- [ ] `migrate-spring-boot/docs/AUDIT-REPORT.md` completed with totals and risk summary
 - [ ] View strategy decision (Thymeleaf vs REST) documented for each JSP group
 - [ ] No file in `struts-app/` was modified
 - [ ] Planner Agent has received the inventory to produce the migration plan
