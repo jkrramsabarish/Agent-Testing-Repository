@@ -1,9 +1,11 @@
 # Struts to Spring Boot — Migration Agents
 
-> **Version:** 1.1 | **Playbook Source:** Struts to Spring Boot Migration Playbook v1.0, June 2025
+> **Version:** 1.2 | **Playbook Source:** Struts to Spring Boot Migration Playbook v1.0, June 2025
 > **Pattern:** Strangler Fig — one module at a time, rollback available at every stage
 
 This repository is a self-contained workspace. Your Struts project, the generated Spring Boot project, and all migration documents all live here together. The `.github/agents/` directory holds the agent definitions that read from `struts-app/` and write to `spring-boot-app/`.
+
+**Don't invoke the nine specialist agents by hand.** Invoke `@orchestrator` — it sequences all of them in the correct phase order, enforces every phase gate and absolute rule from `migration-rules.md`, and pauses for your explicit approval at each human-in-the-loop checkpoint. The per-agent invocation examples below still work (useful for re-running a single step or debugging), but the orchestrator is the intended entry point for driving the migration end to end.
 
 ---
 
@@ -13,16 +15,17 @@ This repository is a self-contained workspace. Your Struts project, the generate
 struts-to-spring-boot-migration-agent/
 │
 ├── .github/
-│   ├── agents/                        ← 9 Custom Agent definitions
-│   │   ├── audit.md                   ← Phase 1: Read-only Struts inventory
-│   │   ├── planner.md                 ← Phase 1: Migration order & risk plan
-│   │   ├── project-bootstrap.md       ← Phase 2: Spring Boot project creation
-│   │   ├── route-configuration.md     ← Phase 3: Security, interceptors, config
-│   │   ├── code-transformation.md     ← Phase 4: Action → Controller migration
-│   │   ├── view-migration.md          ← Phase 5: JSP → Thymeleaf / REST
-│   │   ├── quality-review.md          ← Phase 4–5: Code review gate
-│   │   ├── validation-testing.md      ← Phase 4–5: Test generation & execution
-│   │   └── documentation.md           ← All phases: Documentation production
+│   ├── agents/                        ← 10 Custom Agent definitions
+│   │   ├── orchestrator.agent.md      ← Drives all phases end-to-end, enforces gates, owns HITL checkpoints
+│   │   ├── audit.agent.md             ← Phase 1: Read-only Struts inventory
+│   │   ├── planner.agent.md           ← Phase 1: Migration order & risk plan
+│   │   ├── project-bootstrap.agent.md ← Phase 2: Spring Boot project creation
+│   │   ├── route-configuration.agent.md ← Phase 3: Security, interceptors, config
+│   │   ├── code-transformation.agent.md ← Phase 4: Action → Controller migration
+│   │   ├── view-migration.agent.md    ← Phase 5: JSP → Thymeleaf / REST
+│   │   ├── quality-review.agent.md    ← Phase 4–5: Code review gate
+│   │   ├── validation-testing.agent.md ← Phase 4–5: Test generation & execution
+│   │   └── documentation.agent.md     ← All phases: Documentation production
 │   ├── instructions/                  ← 6 shared instruction files (all agents reference these)
 │   │   ├── migration-playbook.md      ← Phases 1–6, mapping tables, pitfalls
 │   │   ├── migration-rules.md         ← 7 absolute rules + phase gates
@@ -95,12 +98,19 @@ code struts-to-spring-boot-migration-agent/
 ```
 Open the single root folder so the agents can see the entire workspace including `struts-app/` and `spring-boot-app/`.
 
-**Step 3 — Run agents in phase order:**
-Invoke each agent sequentially, following the phase gates. Each agent's output becomes input for the next.
+**Step 3 — Let the orchestrator drive the migration:**
+```
+@orchestrator
+Begin the migration for struts-app/. Follow the phase gates in migration-rules.md
+and pause for my approval at each checkpoint.
+```
+The orchestrator invokes audit, planner, project-bootstrap, route-configuration, and the per-module loop (code-transformation → view-migration → quality-review → validation-testing) in order, tracking progress in `docs/ORCHESTRATION-STATE.md` so you can close your session and resume later — just invoke `@orchestrator` again and it picks up where it left off. It stops and asks before: approving the migration plan, moving past security configuration, switching traffic for a module, signing off cutover, and approving Struts decommissioning. See [agents/orchestrator.agent.md](agents/orchestrator.agent.md) for the full checkpoint list.
+
+You can still invoke any specialist agent directly (below) — useful for re-running a single step, debugging a specific agent's output, or working outside the orchestrator's loop.
 
 ---
 
-## How to Invoke Each Agent
+## How to Invoke Each Agent Directly
 
 ### Phase 1 — Audit Agent
 Reads `struts-app/`. Produces the migration inventory and audit report. Touches nothing else.
@@ -180,15 +190,16 @@ Produce all Phase 6 documentation: ARCHITECTURE-REPORT.md, API-MAPPING.md, ROLLB
 
 | Agent | File | Phase | Reads From | Writes To |
 |---|---|---|---|---|
-| **Audit** | [agents/audit.md](agents/audit.md) | 1 | `struts-app/` | `docs/` |
-| **Planner** | [agents/planner.md](agents/planner.md) | 1 | `struts-app/`, `docs/` | `docs/` |
-| **Project Bootstrap** | [agents/project-bootstrap.md](agents/project-bootstrap.md) | 2 | `docs/` | `spring-boot-app/` |
-| **Route & Configuration** | [agents/route-configuration.md](agents/route-configuration.md) | 3 | `struts-app/`, `docs/` | `spring-boot-app/` |
-| **Code Transformation** | [agents/code-transformation.md](agents/code-transformation.md) | 4 | `struts-app/`, `docs/` | `spring-boot-app/` |
-| **View Migration** | [agents/view-migration.md](agents/view-migration.md) | 5 | `struts-app/`, `docs/` | `spring-boot-app/` |
-| **Quality Review** | [agents/quality-review.md](agents/quality-review.md) | 4–5 | `spring-boot-app/`, `docs/` | `docs/modules/` |
-| **Validation & Testing** | [agents/validation-testing.md](agents/validation-testing.md) | 4–5 | `spring-boot-app/`, `docs/` | `spring-boot-app/src/test/`, `docs/modules/` |
-| **Documentation** | [agents/documentation.md](agents/documentation.md) | All | `docs/modules/` reports | `docs/` |
+| **Orchestrator** | [agents/orchestrator.agent.md](agents/orchestrator.agent.md) | All | `docs/`, `spring-boot-app/`, invokes all other agents | `docs/ORCHESTRATION-STATE.md` |
+| **Audit** | [agents/audit.agent.md](agents/audit.agent.md) | 1 | `struts-app/` | `docs/` |
+| **Planner** | [agents/planner.agent.md](agents/planner.agent.md) | 1 | `struts-app/`, `docs/` | `docs/` |
+| **Project Bootstrap** | [agents/project-bootstrap.agent.md](agents/project-bootstrap.agent.md) | 2 | `docs/` | `spring-boot-app/` |
+| **Route & Configuration** | [agents/route-configuration.agent.md](agents/route-configuration.agent.md) | 3 | `struts-app/`, `docs/` | `spring-boot-app/` |
+| **Code Transformation** | [agents/code-transformation.agent.md](agents/code-transformation.agent.md) | 4 | `struts-app/`, `docs/` | `spring-boot-app/` |
+| **View Migration** | [agents/view-migration.agent.md](agents/view-migration.agent.md) | 5 | `struts-app/`, `docs/` | `spring-boot-app/` |
+| **Quality Review** | [agents/quality-review.agent.md](agents/quality-review.agent.md) | 4–5 | `spring-boot-app/`, `docs/` | `docs/modules/` |
+| **Validation & Testing** | [agents/validation-testing.agent.md](agents/validation-testing.agent.md) | 4–5 | `spring-boot-app/`, `docs/` | `spring-boot-app/src/test/`, `docs/modules/` |
+| **Documentation** | [agents/documentation.agent.md](agents/documentation.agent.md) | All | `docs/modules/` reports | `docs/` |
 
 **One rule for every agent: `struts-app/` is always read-only. No agent ever modifies it.**
 
@@ -211,6 +222,8 @@ All agents inherit these shared instruction files automatically via the `applyTo
 
 ## Agent Collaboration Diagram
 
+The **Orchestrator** sits above every agent below — it is the only agent a human invokes directly. It calls each specialist agent in turn, independently re-verifies each one's Definition of Done, and owns the five ⛔ human checkpoints (`docs/ORCHESTRATION-STATE.md` tracks position across sessions).
+
 ```
 struts-app/ (your Struts source — never modified)
      │
@@ -223,21 +236,24 @@ struts-app/ (your Struts source — never modified)
   MIGRATION-INVENTORY.md  │  MIGRATION-PLAN.md
   AUDIT-REPORT.md         │
                           ▼
+                 ⛔ Checkpoint 1 — human approves MIGRATION-PLAN.md
+                          │
              ┌────────────────────────┐
              │  Project Bootstrap     │  writes: spring-boot-app/ structure
              │  Agent (Phase 2)       │           pom.xml, application.properties
              └───────────┬────────────┘           main application class
-                         │
+                         │  (orchestrator verifies build + health itself)
                          ▼
              ┌────────────────────────┐
              │  Route & Configuration │  writes: SecurityConfig, WebConfig
              │  Agent (Phase 3)       │           GlobalExceptionHandler
              └───────────┬────────────┘           application.properties
                          │
-                ── Phase 3 gate ──
+                 ⛔ Checkpoint 2 — human verifies security matches Struts exactly
                          │
      ┌───────────────────────────────────────────────┐
-     │         Per-Module Loop (Phase 4–5)           │
+     │      Per-Module Loop (Phase 4–5, RULE-3:      │
+     │      one module at a time)                    │
      │                                               │
      │  ┌──────────────────┐                         │
      │  │ Code Transform   │──▶ controller/          │
@@ -253,25 +269,30 @@ struts-app/ (your Struts source — never modified)
      │  │ Quality Review   │──▶ QUALITY-REPORT.md    │
      │  │ Agent            │                         │
      │  └────────┬─────────┘                         │
-     │           │ APPROVED                          │
+     │           │ APPROVED (BLOCKED loops back)      │
      │           ▼                                   │
      │  ┌──────────────────┐                         │
      │  │ Validation &     │──▶ src/test/ + report   │
      │  │ Testing Agent    │                         │
      │  └────────┬─────────┘                         │
-     │           │ APPROVED                          │
+     │           │ APPROVED (failure loops back)      │
      │           ▼                                   │
-     │    [traffic switch — human decision]          │
-     │    [next module]                              │
+     │   ⛔ Checkpoint 3 — human approves traffic     │
+     │       switch for this module (orchestrator    │
+     │       cannot perform the switch itself)        │
+     │           │                                   │
+     │    [next module resumes the loop]             │
      └───────────────────────────────────────────────┘
-                         │ all modules done
+                         │ all modules traffic-switched
                          ▼
              ┌────────────────────────┐
              │  Documentation Agent   │──▶ ARCHITECTURE-REPORT.md
              │  (Phase 6)             │    API-MAPPING.md
              └────────────────────────┘    ROLLBACK-GUIDE.md
                          │                 RELEASE-NOTES.md
-                         │ 30 days stable
+                 ⛔ Checkpoint 4 — human signs off cutover
+                         │ 30 days stable, zero rollbacks
+                 ⛔ Checkpoint 5 — human approves decommission
                          ▼
                    Struts decommissioned
 ```
@@ -324,3 +345,4 @@ Full details: [instructions/migration-rules.md](instructions/migration-rules.md)
 |---|---|---|
 | 1.0 | 2025-06 | Initial README |
 | 1.1 | 2026-07-06 | Added Project Bootstrap Agent (Phase 2), updated agent count to 9, clarified phase gates, simplified invocation examples |
+| 1.2 | 2026-07-10 | Added Orchestrator Agent to automate agent sequencing end-to-end; renamed all agent files to `.agent.md`; added `docs/ORCHESTRATION-STATE.md` for cross-session resume; formalized the 5 human-in-the-loop checkpoints |
