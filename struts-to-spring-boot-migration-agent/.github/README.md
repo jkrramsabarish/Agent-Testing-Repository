@@ -104,7 +104,7 @@ Open the single root folder so the agents can see the entire workspace including
 Begin the migration for struts-app/. Follow the phase gates in migration-rules.md
 and pause for my approval at each checkpoint.
 ```
-The orchestrator invokes audit, planner, project-bootstrap, route-configuration, and the per-module loop (code-transformation → view-migration → quality-review → validation-testing) in order, tracking progress in `docs/ORCHESTRATION-STATE.md` so you can close your session and resume later — just invoke `@orchestrator` again and it picks up where it left off. It stops and asks before: approving the migration plan, moving past security configuration, and switching traffic for each module. The migration **terminates once the Phase 6 documentation set is produced** — there is no cutover sign-off or decommissioning step. See [agents/orchestrator.agent.md](agents/orchestrator.agent.md) for the full checkpoint list.
+The orchestrator invokes audit, planner, project-bootstrap, route-configuration, and the per-module loop (code-transformation → view-migration → quality-review → validation-testing) in order, tracking progress in `docs/ORCHESTRATION-STATE.md` so you can close your session and resume later — just invoke `@orchestrator` again and it picks up where it left off. It stops and asks before: approving the migration plan, moving past security configuration, and accepting each migrated module (Checkpoint 3 — "module verified → proceed"; in a proxied deployment this is where you'd switch traffic, but locally it's just a per-module acceptance). The migration **terminates once the Phase 6 documentation set is produced** — there is no cutover sign-off or decommissioning step. See [agents/orchestrator.agent.md](agents/orchestrator.agent.md) for the full checkpoint list.
 
 You can still invoke any specialist agent directly (below) — useful for re-running a single step, debugging a specific agent's output, or working outside the orchestrator's loop.
 
@@ -169,7 +169,7 @@ Review all generated code for {ModuleName}. Produce docs/modules/QUALITY-REPORT-
 ```
 
 ### Quality Gate — Validation & Testing Agent
-Generates and executes the full test suite. Signs off the module for traffic switch.
+Generates and executes the full test suite. Signs off the module for acceptance (Checkpoint 3).
 
 ```
 @validation-testing
@@ -277,13 +277,13 @@ struts-app/ (your Struts source — never modified)
      │  └────────┬─────────┘                         │
      │           │ APPROVED (failure loops back)      │
      │           ▼                                   │
-     │   ⛔ Checkpoint 3 — human approves traffic     │
-     │       switch for this module (orchestrator    │
-     │       cannot perform the switch itself)        │
+     │   ⛔ Checkpoint 3 — human accepts this module  │
+     │       (verified → proceed; in a proxied setup  │
+     │        this is where traffic is switched)      │
      │           │                                   │
      │    [next module resumes the loop]             │
      └───────────────────────────────────────────────┘
-                         │ all modules traffic-switched
+                         │ all modules accepted
                          ▼
              ┌────────────────────────┐
              │  Documentation Agent   │──▶ ARCHITECTURE-REPORT.md
@@ -321,8 +321,8 @@ Full details: [instructions/migration-rules.md](instructions/migration-rules.md)
 | Phase 1 → 2 | `MIGRATION-INVENTORY.md` complete, `struts-app/` untouched | Audit Agent |
 | Phase 2 → 3 | `spring-boot-app/` builds, `/actuator/health` UP | Project Bootstrap Agent |
 | Phase 3 → 4 | Security configured, matches Struts auth behavior exactly | Route & Config Agent |
-| Per-module → traffic switch | Quality Report APPROVED + Test Report APPROVED | Quality Review + Validation |
-| All modules → Phase 6 | All modules traffic-switched | Orchestrator |
+| Per-module → acceptance | Quality Report APPROVED + Test Report APPROVED | Quality Review + Validation |
+| All modules → Phase 6 | All modules accepted | Orchestrator |
 | Phase 6 (terminal) | Full documentation set produced | Documentation Agent |
 
 ---
@@ -331,7 +331,7 @@ Full details: [instructions/migration-rules.md](instructions/migration-rules.md)
 
 - Does not auto-migrate without human review — every phase gate requires approval before the next agent runs
 - Does not run database migrations (`ddl-auto` stays `validate`)
-- Does not switch nginx/proxy traffic — that is a human-executed change
+- Does not switch nginx/proxy traffic — in a proxied deployment that is a human-executed change; in a local setup Checkpoint 3 is simply a per-module acceptance (no proxy involved)
 - Does not delete or modify `struts-app/` — ever
 - Does not bypass the one-module-at-a-time rule (RULE-3)
 - Does not add authentication that didn't exist in the original app (RULE P3-2)
@@ -346,3 +346,4 @@ Full details: [instructions/migration-rules.md](instructions/migration-rules.md)
 | 1.1 | 2026-07-06 | Added Project Bootstrap Agent (Phase 2), updated agent count to 9, clarified phase gates, simplified invocation examples |
 | 1.2 | 2026-07-10 | Added Orchestrator Agent to automate agent sequencing end-to-end; renamed all agent files to `.agent.md`; added `docs/ORCHESTRATION-STATE.md` for cross-session resume; formalized the 5 human-in-the-loop checkpoints |
 | 1.3 | 2026-07-13 | Orchestrator now **terminates at Phase 6 documentation delivery**; removed Checkpoint 4 (cutover sign-off) and Checkpoint 5 (decommission) — those activities are out of scope. Three human checkpoints remain (plan approval, security verification, per-module traffic switch). RULE-5 retained as a guardrail (`struts-app/` never deleted). |
+| 1.4 | 2026-07-13 | Reframed **Checkpoint 3** from "traffic switch" to **per-module acceptance** ("module verified → proceed"). In a proxied deployment this gate is still where traffic is switched; in a local/dev setup (no reverse proxy) it is simply a human acceptance between modules. Module status token `Traffic Switched` → `Accepted`. RULE-3/RULE-7 intent unchanged. |

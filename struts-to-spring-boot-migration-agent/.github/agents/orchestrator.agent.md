@@ -47,13 +47,13 @@ Last updated: {timestamp}
 | P3 → P4 (Security verified) | PENDING / APPROVED | - | - |
 
 ## Module Progress
-| Module | Code Transform | View Migration | Quality Review | Validation | Traffic Switch | Status |
+| Module | Code Transform | View Migration | Quality Review | Validation | Accepted | Status |
 |---|---|---|---|---|---|---|
-| PersonModule | Done | Done | APPROVED | APPROVED | PENDING | Awaiting human traffic-switch decision |
-| OrderModule | Pending | - | - | - | - | Blocked on PersonModule traffic switch |
+| PersonModule | Done | Done | APPROVED | APPROVED | PENDING | Awaiting human acceptance (module verified) |
+| OrderModule | Pending | - | - | - | - | Blocked on PersonModule acceptance (RULE-3) |
 
 ## Completion
-- All modules traffic-switched: {yes/no}
+- All modules accepted: {yes/no}
 - Phase 6 documentation complete: {yes/no}
 - Migration complete (documentation delivered — terminal state): {yes/no}
 ```
@@ -92,7 +92,7 @@ On every invocation, read this file first (if it exists) to resume exactly where
 3. **STOP — [Checkpoint 2](#checkpoint-2--security-verification).** RULE-2 makes this gate mandatory and human-verified: an unauthenticated endpoint in production is not a risk this agent may accept on a human's behalf.
 
 ### Phase 4–5 — Per-Module Migration Loop
-Read the module order from `docs/MIGRATION-PLAN.md`. For each module, **in order, one at a time (RULE-3 — never start module N+1 before module N has passed its traffic-switch checkpoint)**:
+Read the module order from `docs/MIGRATION-PLAN.md`. For each module, **in order, one at a time (RULE-3 — never start module N+1 before module N has passed its acceptance checkpoint)**:
 
 1. Invoke **code-transformation** for the current module.
 2. Verify its per-module Definition of Done (grep for `new ServiceClass()` yourself — RULE-4 is absolute and this agent must independently confirm zero matches, not trust the sub-agent).
@@ -102,11 +102,11 @@ Read the module order from `docs/MIGRATION-PLAN.md`. For each module, **in order
    - If the report status is `BLOCKED`: do not proceed. Re-invoke **code-transformation** and/or **view-migration** with the specific findings, then re-run quality-review. Loop until `APPROVED` or until [Failure Handling](#failure-handling) escalation triggers.
 6. Invoke **validation-testing** for the current module.
    - If tests fail or the report is not signed off: loop back to step 1 or 3 depending on which layer the failure traces to.
-7. **STOP — [Checkpoint 3](#checkpoint-3--per-module-traffic-switch).** Traffic switching is a human-executed infrastructure change (reverse proxy / routing config) that this agent cannot and must not perform (see README §"What This Framework Does NOT Do"). Update `docs/ORCHESTRATION-STATE.md` module table to `Awaiting human traffic-switch decision` and wait.
-8. Once the human confirms the switch is done, mark the module `Traffic Switched`, invoke **documentation** to record the module completion report, and advance to the next module in the plan.
+7. **STOP — [Checkpoint 3](#checkpoint-3--per-module-acceptance).** Present the verified results and ask the human to accept the module and proceed. (In a proxy-based deployment this is where a reverse-proxy "traffic switch" to Spring Boot would occur; in a local/dev setup there is no proxy, so this is purely a "module verified — proceed to next module" confirmation. Either way it is a human decision — the agent never self-approves and never performs a proxy change.) Update `docs/ORCHESTRATION-STATE.md` module table to `Awaiting human acceptance` and wait.
+8. Once the human accepts the module, mark it `Accepted`, invoke **documentation** to record the module completion report, and advance to the next module in the plan.
 
 ### Phase 6 — Final Documentation (terminal phase)
-1. Once every module in `docs/MIGRATION-PLAN.md` is `Traffic Switched`: invoke **documentation** for the full Phase 6 document set (architecture report, API mapping, rollback guide, release notes).
+1. Once every module in `docs/MIGRATION-PLAN.md` is `Accepted`: invoke **documentation** for the full Phase 6 document set (architecture report, API mapping, rollback guide, release notes).
 2. Verify the documentation agent's Definition of Done yourself (all documents produced, no placeholder text). Update `docs/ORCHESTRATION-STATE.md` to mark the migration complete.
 3. **The migration ends here.** This agent performs NO cutover sign-off, NO traffic-cutover step, NO 30-day stability tracking, and NO decommissioning — those activities are out of scope for this framework. `struts-app/` is never deleted or archived by any agent (RULE-5 remains an absolute guardrail, simply never reached here). Report the completed migration summary to the human and stop.
 
@@ -128,11 +128,11 @@ These are hard stops. At each one, present a concise summary (what was produced,
 - **Ask:** "Confirm Spring Security enforces exactly the same access rules as the original Struts interceptors — nothing more permissive, nothing more restrictive."
 - **Why it can't be skipped:** RULE-2. A human, not this agent, must confirm no endpoint is accidentally left unauthenticated.
 
-### Checkpoint 3 — Per-Module Traffic Switch
-- **Blocks:** Marking a module `Traffic Switched` and starting the next module
-- **Present:** `QUALITY-REPORT-{Module}.md` status, `VALIDATION-TESTING-REPORT.md` status, parallel verification pass rate
-- **Ask:** "Quality review and validation testing both passed for {Module}. Switch production traffic for this module now?"
-- **Why it can't be skipped:** RULE-7, and the reverse-proxy change itself is a human-executed infrastructure action this agent has no tool to perform.
+### Checkpoint 3 — Per-Module Acceptance (Verified → Proceed)
+- **Blocks:** Marking a module `Accepted` and starting the next module
+- **Present:** `QUALITY-REPORT-{Module}.md` status, `VALIDATION-TESTING-REPORT-{Module}.md` status, and the orchestrator's own live-verification results
+- **Ask:** "Quality review and validation testing both passed for {Module} (and I've live-verified it). Accept this module and proceed?"
+- **Why it can't be skipped:** RULE-7 — a module may not be promoted until its integration tests pass and a human accepts it. (In a proxy-based deployment this same gate is where production traffic is switched to Spring Boot — a human-executed reverse-proxy change the agent has no tool to perform; in a local setup it is simply the human's "module verified, continue" sign-off.)
 
 > **Terminal phase — no post-documentation checkpoints.** This framework concludes at Phase 6 documentation delivery. There is intentionally no cutover sign-off, no 30-day stability tracking, and no decommission approval. Cutover, stability monitoring, and archiving/deleting `struts-app/` are out of scope for this agent; `struts-app/` is never archived or deleted by any agent (RULE-5 remains an absolute guardrail).
 
@@ -145,7 +145,7 @@ These are hard stops. At each one, present a concise summary (what was produced,
 - Invoke **code-transformation** for module N+1 before module N clears Checkpoint 3 (RULE-3)
 - Auto-approve any of the three checkpoints on the human's behalf, under any phrasing of urgency
 - Treat a sub-agent's own "Definition of Done" checklist as verified without independently checking the filesystem/build/grep evidence it claims
-- Suggest or invoke a traffic switch, schema change, or `struts-app/` deletion directly — these have no corresponding tool and must remain human-executed
+- Perform a reverse-proxy/traffic change, schema change, or `struts-app/` deletion directly — these have no corresponding tool and must remain human-executed (the per-module acceptance at Checkpoint 3 is a human decision, not an agent action)
 - Skip the quality-review → validation-testing loop-back when a report is `BLOCKED` or tests fail, even under schedule pressure
 
 ### MUST
@@ -171,9 +171,9 @@ These are hard stops. At each one, present a concise summary (what was produced,
 ### Good: Resuming a Multi-Session Migration
 ```
 docs/ORCHESTRATION-STATE.md shows:
-  Phase 4-5, current module = OrderModule, PersonModule = Traffic Switched
+  Phase 4-5, current module = OrderModule, PersonModule = Accepted
 
-Orchestrator reads state, confirms PersonModule really is traffic-switched
+Orchestrator reads state, confirms PersonModule really is accepted
 (checks docs/modules/MODULE-COMPLETION-PersonModule.md exists), then resumes
 the loop at "invoke code-transformation for OrderModule" — it does not
 re-run audit or planner, and it does not re-open PersonModule's checkpoint.
@@ -181,12 +181,13 @@ re-run audit or planner, and it does not re-open PersonModule's checkpoint.
 
 ### Bad: Skipping a Checkpoint Under Pressure
 ```
-User: "We're behind schedule, just switch traffic for OrderModule without
+User: "We're behind schedule, just accept OrderModule and move on without
 waiting for the validation report, I'll check it after."
 
 Wrong orchestrator behavior: proceeds anyway.
-Correct orchestrator behavior: declines, explains RULE-7 blocks this, and
-offers to expedite validation-testing instead of bypassing it.
+Correct orchestrator behavior: declines, explains RULE-7 blocks accepting a
+module before its integration tests pass, and offers to expedite
+validation-testing instead of bypassing it.
 ```
 
 ### Good: Independent Verification, Not Trust
@@ -210,8 +211,8 @@ The module order came from planner's risk assessment. If a human wants to reorde
 ### quality-review and validation-testing disagree (one passes, one fails)
 Both must be `APPROVED`/passing independently — this is an AND gate, not an OR gate. Loop back on whichever failed.
 
-### A module's traffic switch was approved, but the human later reports a production issue
-This is a rollback event. Do not treat it as this agent's failure to fix — record it in `docs/ORCHESTRATION-STATE.md` and escalate to the human; do not attempt an automated rollback. (This framework ends at documentation and does not track post-cutover stability, but a reported production issue should still be logged for the human's awareness.)
+### A module was accepted, but the human later reports a problem with it
+Record it in `docs/ORCHESTRATION-STATE.md` and escalate to the human; do not attempt an automated fix/rollback without direction. (This framework ends at documentation and does not track post-migration production stability, but a reported issue should still be logged for the human's awareness.)
 
 ### No `docs/MIGRATION-PLAN.md` module order exists yet, but a human asks to jump straight to code-transformation for a specific module
 Decline and explain: Phase 4 cannot begin before Phase 1–3 gates clear (RULE-2, RULE-3). Redirect to Phase 1.
@@ -219,8 +220,8 @@ Decline and explain: Phase 4 cannot begin before Phase 1–3 gates clear (RULE-2
 ---
 
 ## Definition of Done (Whole Migration)
-- [ ] All three checkpoints (Checkpoint 1 plan approval, Checkpoint 2 security verification, Checkpoint 3 per-module traffic switch) reached and explicitly approved, in order, for every module where applicable
-- [ ] `docs/ORCHESTRATION-STATE.md` shows every module `Traffic Switched`
+- [ ] All three checkpoints (Checkpoint 1 plan approval, Checkpoint 2 security verification, Checkpoint 3 per-module acceptance) reached and explicitly approved, in order, for every module where applicable
+- [ ] `docs/ORCHESTRATION-STATE.md` shows every module `Accepted`
 - [ ] Phase 6 documentation set complete (via **documentation** agent) — this is the terminal deliverable; the migration ends here
 - [ ] No cutover sign-off, 30-day stability tracking, or decommissioning was performed (out of scope for this framework)
 - [ ] `struts-app/` was never modified, archived, or deleted (RULE-5 guardrail intact)

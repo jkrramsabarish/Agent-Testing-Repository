@@ -81,7 +81,9 @@ Per-module integration tests must pass before traffic is switched for that modul
 - Integration tests must run against the shared database.
 - Manual smoke tests of all user journeys are required before switching.
 
-**Enforcement:** The Validation & Testing Agent must produce a signed-off integration test report for each module. The Planner Agent must block the traffic switch without this report.
+**Enforcement:** The Validation & Testing Agent must produce a signed-off integration test report for each module. The Planner Agent must block module promotion without this report.
+
+> **Terminology (Checkpoint 3):** "traffic switch" is the canonical strangler-fig term for **promoting a verified module**. In a proxied deployment it is literally a reverse-proxy traffic switch to Spring Boot; in a local/dev setup (no proxy) the same gate is a **per-module human acceptance** ("module verified → proceed"). Either way the rule is identical: integration tests must pass and a human must accept before the next module starts.
 
 ---
 
