@@ -104,7 +104,7 @@ Open the single root folder so the agents can see the entire workspace including
 Begin the migration for struts-app/. Follow the phase gates in migration-rules.md
 and pause for my approval at each checkpoint.
 ```
-The orchestrator invokes audit, planner, project-bootstrap, route-configuration, and the per-module loop (code-transformation → view-migration → quality-review → validation-testing) in order, tracking progress in `docs/ORCHESTRATION-STATE.md` so you can close your session and resume later — just invoke `@orchestrator` again and it picks up where it left off. It stops and asks before: approving the migration plan, moving past security configuration, switching traffic for a module, signing off cutover, and approving Struts decommissioning. See [agents/orchestrator.agent.md](agents/orchestrator.agent.md) for the full checkpoint list.
+The orchestrator invokes audit, planner, project-bootstrap, route-configuration, and the per-module loop (code-transformation → view-migration → quality-review → validation-testing) in order, tracking progress in `docs/ORCHESTRATION-STATE.md` so you can close your session and resume later — just invoke `@orchestrator` again and it picks up where it left off. It stops and asks before: approving the migration plan, moving past security configuration, and switching traffic for each module. The migration **terminates once the Phase 6 documentation set is produced** — there is no cutover sign-off or decommissioning step. See [agents/orchestrator.agent.md](agents/orchestrator.agent.md) for the full checkpoint list.
 
 You can still invoke any specialist agent directly (below) — useful for re-running a single step, debugging a specific agent's output, or working outside the orchestrator's loop.
 
@@ -222,7 +222,7 @@ All agents inherit these shared instruction files automatically via the `applyTo
 
 ## Agent Collaboration Diagram
 
-The **Orchestrator** sits above every agent below — it is the only agent a human invokes directly. It calls each specialist agent in turn, independently re-verifies each one's Definition of Done, and owns the five ⛔ human checkpoints (`docs/ORCHESTRATION-STATE.md` tracks position across sessions).
+The **Orchestrator** sits above every agent below — it is the only agent a human invokes directly. It calls each specialist agent in turn, independently re-verifies each one's Definition of Done, and owns the three ⛔ human checkpoints (`docs/ORCHESTRATION-STATE.md` tracks position across sessions). The migration terminates at Phase 6 documentation delivery.
 
 ```
 struts-app/ (your Struts source — never modified)
@@ -287,14 +287,13 @@ struts-app/ (your Struts source — never modified)
                          ▼
              ┌────────────────────────┐
              │  Documentation Agent   │──▶ ARCHITECTURE-REPORT.md
-             │  (Phase 6)             │    API-MAPPING.md
+             │  (Phase 6, terminal)   │    API-MAPPING.md
              └────────────────────────┘    ROLLBACK-GUIDE.md
                          │                 RELEASE-NOTES.md
-                 ⛔ Checkpoint 4 — human signs off cutover
-                         │ 30 days stable, zero rollbacks
-                 ⛔ Checkpoint 5 — human approves decommission
                          ▼
-                   Struts decommissioned
+              Migration complete (documentation delivered)
+       (no cutover sign-off / decommission — out of scope for this
+        framework; struts-app/ is never deleted — RULE-5 guardrail)
 ```
 
 ---
@@ -323,8 +322,8 @@ Full details: [instructions/migration-rules.md](instructions/migration-rules.md)
 | Phase 2 → 3 | `spring-boot-app/` builds, `/actuator/health` UP | Project Bootstrap Agent |
 | Phase 3 → 4 | Security configured, matches Struts auth behavior exactly | Route & Config Agent |
 | Per-module → traffic switch | Quality Report APPROVED + Test Report APPROVED | Quality Review + Validation |
-| All modules → Phase 6 cutover | Full regression passes | Validation & Testing Agent |
-| Cutover → decommission | 30 stable days, zero rollback events | Human review |
+| All modules → Phase 6 | All modules traffic-switched | Orchestrator |
+| Phase 6 (terminal) | Full documentation set produced | Documentation Agent |
 
 ---
 
@@ -346,3 +345,4 @@ Full details: [instructions/migration-rules.md](instructions/migration-rules.md)
 | 1.0 | 2025-06 | Initial README |
 | 1.1 | 2026-07-06 | Added Project Bootstrap Agent (Phase 2), updated agent count to 9, clarified phase gates, simplified invocation examples |
 | 1.2 | 2026-07-10 | Added Orchestrator Agent to automate agent sequencing end-to-end; renamed all agent files to `.agent.md`; added `docs/ORCHESTRATION-STATE.md` for cross-session resume; formalized the 5 human-in-the-loop checkpoints |
+| 1.3 | 2026-07-13 | Orchestrator now **terminates at Phase 6 documentation delivery**; removed Checkpoint 4 (cutover sign-off) and Checkpoint 5 (decommission) — those activities are out of scope. Three human checkpoints remain (plan approval, security verification, per-module traffic switch). RULE-5 retained as a guardrail (`struts-app/` never deleted). |

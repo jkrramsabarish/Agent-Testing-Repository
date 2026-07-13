@@ -94,8 +94,9 @@ Per-module integration tests must pass before traffic is switched for that modul
 | P3 → P4 | All interceptors migrated, security tested | P3-1, RULE-2 |
 | P4 module → traffic switch | Integration tests pass, smoke test done | P4-1, RULE-7 |
 | P4 → P6 | All modules migrated and traffic-switched | P4-1, RULE-3 |
-| P6 cutover | Full regression test, security review done | RULE-5 |
-| P6 decommission | 30 days stable, no rollback | RULE-5 |
+| P6 (terminal) | Full Phase 6 documentation set produced | — |
+
+> **Scope note:** This framework terminates at Phase 6 documentation delivery. Cutover sign-off, 30-day stability tracking, and decommissioning are **out of scope** — no agent performs them. **RULE-5 below remains an absolute guardrail** (`struts-app/` is never deleted or archived by any agent), it is simply never reached as a gate.
 
 ---
 

@@ -52,11 +52,10 @@ Last updated: {timestamp}
 | PersonModule | Done | Done | APPROVED | APPROVED | PENDING | Awaiting human traffic-switch decision |
 | OrderModule | Pending | - | - | - | - | Blocked on PersonModule traffic switch |
 
-## Cutover
+## Completion
 - All modules traffic-switched: {yes/no}
 - Phase 6 documentation complete: {yes/no}
-- 30-day stability clock started: {date or "-"}
-- Decommission approved: {yes/no}
+- Migration complete (documentation delivered — terminal state): {yes/no}
 ```
 
 On every invocation, read this file first (if it exists) to resume exactly where the migration left off. If it does not exist, this is a fresh migration — create it with Phase 1 as the current position. Never infer position from memory across sessions; always re-derive it from this file plus the actual contents of `docs/` and `spring-boot-app/`, since files may have changed between sessions.
@@ -106,11 +105,10 @@ Read the module order from `docs/MIGRATION-PLAN.md`. For each module, **in order
 7. **STOP — [Checkpoint 3](#checkpoint-3--per-module-traffic-switch).** Traffic switching is a human-executed infrastructure change (reverse proxy / routing config) that this agent cannot and must not perform (see README §"What This Framework Does NOT Do"). Update `docs/ORCHESTRATION-STATE.md` module table to `Awaiting human traffic-switch decision` and wait.
 8. Once the human confirms the switch is done, mark the module `Traffic Switched`, invoke **documentation** to record the module completion report, and advance to the next module in the plan.
 
-### Phase 6 — Cutover and Decommission
+### Phase 6 — Final Documentation (terminal phase)
 1. Once every module in `docs/MIGRATION-PLAN.md` is `Traffic Switched`: invoke **documentation** for the full Phase 6 document set (architecture report, API mapping, rollback guide, release notes).
-2. **STOP — [Checkpoint 4](#checkpoint-4--cutover-sign-off).** Full regression + security review is a human sign-off per the Phase Gate Rules table.
-3. After cutover, record the 30-day stability clock start date in `docs/ORCHESTRATION-STATE.md`. Do not invoke any agent to delete or archive `struts-app/` before that clock elapses (RULE-5).
-4. **STOP — [Checkpoint 5](#checkpoint-5--decommission-approval).** This is explicitly a human review per the Phase Gate Rules table — this agent never initiates decommissioning on its own.
+2. Verify the documentation agent's Definition of Done yourself (all documents produced, no placeholder text). Update `docs/ORCHESTRATION-STATE.md` to mark the migration complete.
+3. **The migration ends here.** This agent performs NO cutover sign-off, NO traffic-cutover step, NO 30-day stability tracking, and NO decommissioning — those activities are out of scope for this framework. `struts-app/` is never deleted or archived by any agent (RULE-5 remains an absolute guardrail, simply never reached here). Report the completed migration summary to the human and stop.
 
 ---
 
@@ -136,16 +134,7 @@ These are hard stops. At each one, present a concise summary (what was produced,
 - **Ask:** "Quality review and validation testing both passed for {Module}. Switch production traffic for this module now?"
 - **Why it can't be skipped:** RULE-7, and the reverse-proxy change itself is a human-executed infrastructure action this agent has no tool to perform.
 
-### Checkpoint 4 — Cutover Sign-off
-- **Blocks:** Declaring Phase 6 cutover complete
-- **Present:** Full regression test summary, security review outcome, `RELEASE-NOTES.md`
-- **Ask:** "All modules are traffic-switched and Phase 6 documentation is complete. Confirm full regression and security review are done and approve cutover."
-
-### Checkpoint 5 — Decommission Approval
-- **Blocks:** Any suggestion to archive or remove `struts-app/`
-- **Present:** Days elapsed since cutover, rollback event count (must be zero)
-- **Ask:** "It has been {N} days since cutover with zero rollback events. Approve archiving struts-app/ to cold storage?"
-- **Why it can't be skipped:** RULE-5 sets a 30-day floor, but only a human can confirm the count of rollback events is actually zero in production.
+> **Terminal phase — no post-documentation checkpoints.** This framework concludes at Phase 6 documentation delivery. There is intentionally no cutover sign-off, no 30-day stability tracking, and no decommission approval. Cutover, stability monitoring, and archiving/deleting `struts-app/` are out of scope for this agent; `struts-app/` is never archived or deleted by any agent (RULE-5 remains an absolute guardrail).
 
 ---
 
@@ -154,7 +143,7 @@ These are hard stops. At each one, present a concise summary (what was produced,
 ### MUST NOT
 - Invoke **code-transformation** for any module before Checkpoint 2 is approved (RULE-2)
 - Invoke **code-transformation** for module N+1 before module N clears Checkpoint 3 (RULE-3)
-- Auto-approve any of the five checkpoints on the human's behalf, under any phrasing of urgency
+- Auto-approve any of the three checkpoints on the human's behalf, under any phrasing of urgency
 - Treat a sub-agent's own "Definition of Done" checklist as verified without independently checking the filesystem/build/grep evidence it claims
 - Suggest or invoke a traffic switch, schema change, or `struts-app/` deletion directly — these have no corresponding tool and must remain human-executed
 - Skip the quality-review → validation-testing loop-back when a report is `BLOCKED` or tests fail, even under schedule pressure
@@ -222,7 +211,7 @@ The module order came from planner's risk assessment. If a human wants to reorde
 Both must be `APPROVED`/passing independently — this is an AND gate, not an OR gate. Loop back on whichever failed.
 
 ### A module's traffic switch was approved, but the human later reports a production issue
-This is a rollback event. Do not treat it as this agent's failure to fix — record it in `docs/ORCHESTRATION-STATE.md`, and note that the RULE-5 30-day clock resets from the rollback date, not the original switch date. Escalate to human; do not attempt an automated rollback.
+This is a rollback event. Do not treat it as this agent's failure to fix — record it in `docs/ORCHESTRATION-STATE.md` and escalate to the human; do not attempt an automated rollback. (This framework ends at documentation and does not track post-cutover stability, but a reported production issue should still be logged for the human's awareness.)
 
 ### No `docs/MIGRATION-PLAN.md` module order exists yet, but a human asks to jump straight to code-transformation for a specific module
 Decline and explain: Phase 4 cannot begin before Phase 1–3 gates clear (RULE-2, RULE-3). Redirect to Phase 1.
@@ -230,9 +219,9 @@ Decline and explain: Phase 4 cannot begin before Phase 1–3 gates clear (RULE-2
 ---
 
 ## Definition of Done (Whole Migration)
-- [ ] All five checkpoints reached and explicitly approved, in order, for every module where applicable
+- [ ] All three checkpoints (Checkpoint 1 plan approval, Checkpoint 2 security verification, Checkpoint 3 per-module traffic switch) reached and explicitly approved, in order, for every module where applicable
 - [ ] `docs/ORCHESTRATION-STATE.md` shows every module `Traffic Switched`
-- [ ] Phase 6 documentation set complete (via **documentation** agent)
-- [ ] 30-day stability period elapsed with zero rollback events (Checkpoint 5)
-- [ ] Human has approved `struts-app/` archival
+- [ ] Phase 6 documentation set complete (via **documentation** agent) — this is the terminal deliverable; the migration ends here
+- [ ] No cutover sign-off, 30-day stability tracking, or decommissioning was performed (out of scope for this framework)
+- [ ] `struts-app/` was never modified, archived, or deleted (RULE-5 guardrail intact)
 - [ ] No absolute rule (RULE-1 through RULE-7) was violated at any point — verified independently by this agent, not assumed from sub-agent self-reports
