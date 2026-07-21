@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "python3 .github/copilot/hook_log.py --event session",
+        "powershell": "python .github/copilot/hook_log.py --event session",
+        "timeoutSec": 20
+      }
+    ],
+    "userPromptSubmitted": [
+      {
+        "type": "command",
+        "bash": "python3 .github/copilot/hook_log.py --event prompt",
+        "powershell": "python .github/copilot/hook_log.py --event prompt",
+        "timeoutSec": 20
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "matcher": "view|create|edit|bash|powershell|grep|glob",
+        "bash": "python3 .github/copilot/hook_log.py --event tool",
+        "powershell": "python .github/copilot/hook_log.py --event tool",
+        "timeoutSec": 20
+      }
+    ]
+  }
+}

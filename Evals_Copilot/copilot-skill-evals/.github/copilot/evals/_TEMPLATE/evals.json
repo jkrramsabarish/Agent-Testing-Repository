@@ -1,0 +1,51 @@
+{
+  "_help": "Copy this folder to .github/copilot/evals/<YourName>/ and replace every <...> placeholder. evals.json is REQUIRED per subject under test. Keys prefixed with _ are comments and are ignored by the tooling. Glob patterns match against audit.log paths; '*' matches any run in a case's audit.log. Delete assertion entries you don't need.",
+  "subject": "<what you are testing: a prompt-file name (e.g. /migrator) or a custom agent (e.g. @audit)>",
+  "subject_file": "<.github/prompts/<name>.prompt.md  OR  .github/agents/<name>.agent.md>",
+  "source_under_test": "<the legacy project directory the agent reads, e.g. legacy-app/>",
+
+  "evals": [
+    {
+      "id": 1,
+      "name": "<short name for this case>",
+      "task": "<the exact prompt you send the agent to produce the artifact, e.g. '@audit Audit legacy-app/ and produce docs/INVENTORY.md'>",
+      "artifact_hint": "<path the agent should produce, e.g. docs/PLAN.md — pass this to judge_eval.py --artifact after the run>",
+
+      "_assertions_help": "Natural-language claims about the PRODUCED ARTIFACT, graded by the copilot -p LLM judge (judge_eval.py). Each becomes pass/fail.",
+      "assertions": [
+        "<a claim the produced document must satisfy, e.g. 'Lists every source component that needs migrating'>",
+        "<e.g. 'Defines the migration order / phases'>",
+        "<e.g. 'Documents rollback for each step'>"
+      ],
+
+      "_knowledge_assertions_help": "Optional. Specific factual claims tied to the real source code — grounds the judge in ground truth so it can't be fooled by plausible prose.",
+      "knowledge_assertions": [
+        {
+          "claim": "<a specific fact the artifact must reflect, e.g. 'Flags that OrderAction instantiates its service with new()'>",
+          "source": "<file (and line) in the source that grounds it, e.g. legacy-app/.../OrderAction.java:22>",
+          "rationale": "<why it matters for a correct migration>"
+        }
+      ],
+
+      "_process_assertions_help": "Ordering/presence checks over audit.log (process_assert.py). type=order|present|absent. Patterns are '<EVENT> <path-glob>' where EVENT is READ|WRITE|SHELL|SKILL|STEERING|*.",
+      "process_assertions": [
+        { "type": "present", "pattern": "WRITE *<produced-doc>.md", "description": "<the expected artifact was written>" },
+        { "type": "absent",  "pattern": "WRITE *<source-dir>/*",     "description": "<source project is read-only — no writes to it>" },
+        { "type": "order",   "first": "READ *<key-source-file>", "then": "WRITE *<produced-doc>.md", "description": "<source is read before the output is written>" }
+      ],
+
+      "_context_assertions_help": "Which files the agent read / which instructions were active (context_assert.py). required_steering matches STEERING entries (your .github/instructions files).",
+      "context_assertions": {
+        "required_reads": [
+          { "pattern": "*<key-source-file>", "description": "<the agent had to read this>" }
+        ],
+        "required_steering": [
+          { "pattern": "*<your-rules>.md", "description": "<your instruction/rules file was active>" }
+        ],
+        "forbidden_reads": [
+          { "pattern": "*<off-limits path, e.g. **/credentials/*>", "description": "<the agent must not read this>" }
+        ]
+      }
+    }
+  ]
+}

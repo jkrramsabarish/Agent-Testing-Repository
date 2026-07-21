@@ -1,0 +1,16 @@
+{
+  "_help": "OPTIONAL — only needed for the instruction-auto-apply eval (trigger_eval.py). Skip it entirely if your instruction files are always-on (applyTo: \"**\"), since auto-apply is then trivial. Replace every <...> placeholder. Keys prefixed with _ are ignored.",
+
+  "instruction_name": "<name of the instruction file under test>",
+  "instruction_file": ".github/instructions/<name>.instructions.md",
+
+  "_signal_help": "The canary token your instruction file emits when active. Add a line to that instruction file like: 'When these instructions are in effect, begin your reply with [[MY-INSTR-ACTIVE]].' If you omit signal, the fallback checks whether the instruction filename appears in the agent's output.",
+  "signal": "[[MY-INSTR-ACTIVE]]",
+
+  "_prompts_help": "Positive cases (should_trigger:true) should apply the instruction; negatives should not. context_file names a file in the prompt so an applyTo glob actually fires.",
+  "prompts": [
+    { "text": "<a task that SHOULD apply this instruction>", "should_trigger": true,  "context_file": "<a file matching its applyTo glob>" },
+    { "text": "<another positive task>",                     "should_trigger": true,  "context_file": "<matching file>" },
+    { "text": "<an off-target task that should NOT apply it>", "should_trigger": false }
+  ]
+}

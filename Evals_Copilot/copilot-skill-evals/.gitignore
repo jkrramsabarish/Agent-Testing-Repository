@@ -1,0 +1,35 @@
+# Ignore everything by default
+*
+!*/
+
+# Root-level files
+!README.md
+!.gitignore
+
+# The eval tooling (Python scripts)
+!.github/copilot/judge_eval.py
+!.github/copilot/process_assert.py
+!.github/copilot/context_assert.py
+!.github/copilot/trigger_eval.py
+!.github/copilot/run_agent.py
+!.github/copilot/hook_log.py
+
+# Observability hooks (the Kiro-hooks analog)
+!.github/hooks/
+!.github/hooks/audit.json
+
+# Example artifacts (illustrative — replace with your own)
+!.github/copilot-instructions.md
+!.github/instructions/*.instructions.md
+!.github/prompts/*.prompt.md
+!.github/copilot/evals/**/evals.json
+!.github/copilot/evals/**/triggering.json
+
+# Runtime / generated outputs — never commit
+audit.log
+hook_debug.log
+*.log
+*_results.json
+*.pyc
+__pycache__/
+.copilot/
